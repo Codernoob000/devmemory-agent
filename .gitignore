@@ -1,0 +1,27 @@
+# Local environment secret variables (CRITICAL: Do not leak API keys)
+.env
+
+# Python Virtual Environment
+venv/
+ENV/
+env/
+
+# Python caching and bytecode compilation files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Project-specific database or telemetry logs
+data/audit_trail.json
+.hindsight_cache/
+
+# IDE specific files (VS Code / Cursor / PyCharm)
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
