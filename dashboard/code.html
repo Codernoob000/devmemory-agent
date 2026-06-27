@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>DevMemory Agent // Command Center</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;700&amp;family=Jetbrains+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.cdnfonts.com/css/geist" rel="stylesheet"/>
+<style>
+        @font-face {
+            font-family: 'Geist';
+            src: url('https://fonts.cdnfonts.com/css/geist');
+        }
+        
+        body {
+            font-family: 'Geist', sans-serif;
+            background-color: #090f11; /* surface-container-lowest for deep dark mode */
+            color: #dee3e6;
+            overflow-x: hidden;
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+
+        .glass-panel {
+            background: rgba(23, 29, 30, 0.4);
+            backdrop-filter: blur(12px);
+            border: 1px solid #3d494c;
+        }
+
+        .code-container {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .scan-pulse {
+            animation: pulse-primary 2s infinite;
+        }
+
+        @keyframes pulse-primary {
+            0% { box-shadow: 0 0 0 0 rgba(76, 215, 246, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(76, 215, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(76, 215, 246, 0); }
+        }
+
+        .timeline-item {
+            opacity: 0.5;
+            transition: all 0.5s ease-out;
+        }
+
+        .timeline-item.active {
+            opacity: 1;
+        }
+
+        .scroll-hide::-webkit-scrollbar {
+            display: none;
+        }
+
+        .inner-glow-top {
+            box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+        }
+
+        .emerald-glow {
+            border-color: #4edea3 !important;
+            background-color: rgba(0, 165, 114, 0.1) !important;
+            box-shadow: 0 0 15px rgba(78, 222, 163, 0.1);
+        }
+    </style>
+<script id="tailwind-config">tailwind.config = {darkMode: "class", theme: {extend: {colors: {"on-secondary-container": "#00311f", outline: "#869397", "tertiary-container": "#ff7e8f", "on-primary": "#003640", "on-primary-container": "#00424f", "on-secondary-fixed-variant": "#005236", "tertiary-fixed-dim": "#ffb2b9", "surface-container-lowest": "#090f11", "surface-container-low": "#171d1e", "surface-bright": "#343a3c", "surface-container-highest": "#303638", "outline-variant": "#3d494c", error: "#ffb4ab", "surface-container": "#1b2122", primary: "#4cd7f6", "on-error-container": "#ffdad6", "on-background": "#dee3e6", "on-tertiary-container": "#790b29", "on-surface-variant": "#bcc9cd", "on-primary-fixed-variant": "#004e5c", "error-container": "#93000a", secondary: "#4edea3", "surface-variant": "#303638", "secondary-fixed-dim": "#4edea3", "on-error": "#690005", "on-tertiary-fixed-variant": "#891933", "on-tertiary": "#67001f", "secondary-container": "#00a572", "primary-fixed": "#acedff", "inverse-on-surface": "#2b3133", "on-tertiary-fixed": "#400010", "primary-fixed-dim": "#4cd7f6", "on-primary-fixed": "#001f26", "surface-container-high": "#252b2d", "on-secondary-fixed": "#002113", "on-secondary": "#003824", "tertiary-fixed": "#ffdadc", tertiary: "#ffb2b9", "on-surface": "#dee3e6", surface: "#0e1416", "secondary-fixed": "#6ffbbe", background: "#0e1416", "surface-tint": "#4cd7f6", "inverse-surface": "#dee3e6", "primary-container": "#06b6d4", "surface-dim": "#0e1416", "inverse-primary": "#00687a"}, borderRadius: {DEFAULT: "0.125rem", lg: "0.25rem", xl: "0.5rem", full: "0.75rem"}, spacing: {unit: "4px", "container-max": "1440px", margin: "24px", gutter: "16px"}, fontFamily: {"headline-lg": ["Geist"], "code-sm": ["JetBrains Mono"], "headline-md": ["Geist"], "body-md": ["Geist"], "label-md": ["JetBrains Mono"], "body-lg": ["Geist"], headline: ["Geist"], display: ["Geist"], body: ["Geist"], label: ["Jetbrains Mono"]}, fontSize: {}}}};</script>
+</head>
+<body class="bg-surface-container-lowest text-on-surface antialiased">
+<!-- Sidebar -->
+<aside class="hidden md:flex flex-col h-screen fixed left-0 top-0 py-margin w-64 bg-surface-container-low border-r border-outline-variant z-50">
+<div class="px-6 mb-8">
+<h1 class="font-bold text-2xl tracking-tight text-primary">DevMemory Agent</h1>
+<p class="text-on-surface-variant font-label-md text-[10px] uppercase tracking-widest mt-1">v4.2.0-stable</p>
+</div>
+<nav class="flex-1 px-4 space-y-2">
+<a class="flex items-center gap-3 px-4 py-3 bg-primary-container text-on-primary-container rounded-lg font-bold" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-md text-sm">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-highest rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">memory</span>
+<span class="font-label-md text-sm">Agents</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-highest rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">hub</span>
+<span class="font-label-md text-sm">Pipeline</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-highest rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">terminal</span>
+<span class="font-label-md text-sm">Logs</span>
+</a>
+</nav>
+<div class="px-4 mt-auto">
+<button class="w-full bg-surface-container-highest text-primary border border-primary/20 py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-primary hover:text-on-primary transition-all">
+<span class="material-symbols-outlined">add</span>
+<span class="text-sm">New Agent</span>
+</button>
+</div>
+</aside>
+<main class="md:ml-64 min-h-screen">
+<!-- Header & Metrics -->
+<header class="flex justify-between items-center px-margin h-20 w-full z-40 bg-surface-container-lowest border-b border-outline-variant sticky top-0">
+<div class="flex items-center gap-4">
+<h2 class="text-xl font-bold text-on-surface tracking-tight">Agent Console // Active Stream</h2>
+</div>
+<div class="hidden lg:flex items-center gap-12">
+<div class="flex flex-col">
+<span class="text-[10px] text-on-surface-variant uppercase tracking-widest font-bold">Total Saved Logs Processed</span>
+<span class="text-xl font-bold text-on-surface">1,420</span>
+</div>
+<div class="h-8 w-[1px] bg-outline-variant"></div>
+<div class="flex flex-col">
+<span class="text-[10px] text-on-surface-variant uppercase tracking-widest font-bold">Compute Infrastructure Spend</span>
+<div class="flex items-center gap-2">
+<span class="text-error line-through text-sm">$12.40</span>
+<span class="text-xl font-bold text-secondary">$0.84</span>
+</div>
+</div>
+<div class="h-8 w-[1px] bg-outline-variant"></div>
+<div class="flex flex-col">
+<span class="text-[10px] text-on-surface-variant uppercase tracking-widest font-bold">CascadeFlow Efficiency</span>
+<div class="flex items-center gap-1 text-secondary">
+<span class="text-xl font-bold">93.2% Budget Saved</span>
+<span class="material-symbols-outlined text-lg">trending_up</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="bg-primary text-on-primary px-8 py-2.5 rounded-lg font-bold text-sm hover:opacity-90 transition-all active:scale-95 shadow-lg shadow-primary/20">
+                Deploy
+            </button>
+</div>
+</header>
+<div class="p-margin grid grid-cols-12 gap-gutter">
+<!-- Split-Pane Controller: Left Column (Editor) -->
+<section class="col-span-12 xl:col-span-7">
+<div class="glass-panel rounded-xl overflow-hidden flex flex-col h-[580px] inner-glow-top">
+<div class="px-6 py-3 border-b border-outline-variant flex justify-between items-center bg-surface-container-low">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm">code</span>
+<h3 class="text-sm font-bold tracking-tight text-on-surface-variant uppercase">Ingestion Controller</h3>
+</div>
+<div class="flex gap-1.5">
+<div class="w-2.5 h-2.5 rounded-full bg-outline-variant"></div>
+<div class="w-2.5 h-2.5 rounded-full bg-outline-variant"></div>
+<div class="w-2.5 h-2.5 rounded-full bg-outline-variant"></div>
+</div>
+</div>
+<div class="flex-1 flex overflow-hidden">
+<div class="w-12 bg-surface-container-lowest border-r border-outline-variant flex flex-col items-center py-4 text-outline font-code-sm text-[11px] select-none opacity-50">
+<span>01</span><span>02</span><span>03</span><span>04</span><span>05</span><span>06</span><span>07</span><span>08</span><span>09</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span><span>19</span><span>20</span>
+</div>
+<div class="flex-1 bg-[#05090a] p-6 overflow-y-auto scroll-hide code-container text-sm leading-relaxed">
+<div class="mb-2 text-error font-bold">[CRITICAL] UnhandledPromiseRejectionWarning: DBConnectionError: pool-exhausted</div>
+<div class="mb-2 text-outline-variant">at async /app/dist/services/db-adapter.js:142:9</div>
+<div class="mb-2 text-outline-variant">at processTicksAndRejections (internal/process/task_queues.js:95:5)</div>
+<div class="mb-2 text-error bg-error/10 px-2 rounded w-fit">ERROR 1040 (08004): Too many connections (max: 1000)</div>
+<div class="mt-4 mb-2 text-primary font-bold">DEBUG: Redacting PII &amp; Tokens...</div>
+<div class="pl-4 py-3 border-l-2 border-primary/20 bg-surface-container-low/20 rounded-r mb-2">
+<div class="text-secondary font-mono">"auth_token": "sk-••••••••••••••••••••8y7z"</div>
+<div class="text-secondary font-mono">"user_email": "admin@••••••••••••-v4.io"</div>
+<div class="text-secondary font-mono">"connection_string": "mongodb+srv://root:••••••••@cluster0.p0v.mongodb.net/prod"</div>
+</div>
+<div class="text-on-surface-variant/40 italic">... (3,402 lines suppressed for performance)</div>
+</div>
+</div>
+<div class="p-6 bg-surface-container border-t border-outline-variant space-y-4">
+<textarea id="log-input" rows="3" placeholder="Paste raw system log payload here..." class="w-full bg-[#05090a] text-on-surface border border-outline-variant rounded-lg p-4 font-mono text-sm placeholder:text-outline resize-none focus:outline-none focus:border-primary transition-colors"></textarea>
+<button class="w-full py-4 rounded-xl font-bold text-lg bg-primary text-on-primary hover:brightness-110 active:scale-[0.98] transition-all scan-pulse flex items-center justify-center gap-3 shadow-xl shadow-primary/10" id="trigger-scan">
+<span class="material-symbols-outlined">flare</span>
+                        Trigger Asynchronous DevMemory Scan
+                    </button>
+<div id="status-message" class="text-center text-sm font-bold hidden"></div>
+</div>
+</div>
+</section>
+<!-- Right Column: Timeline -->
+<section class="col-span-12 xl:col-span-5">
+<div class="glass-panel rounded-xl p-8 inner-glow-top h-full flex flex-col">
+<div class="flex items-center justify-between mb-10">
+<h3 class="text-sm font-bold text-on-surface-variant uppercase tracking-[0.2em]">Runtime Audit Trail</h3>
+<div class="flex items-center gap-2 px-3 py-1 bg-secondary/10 border border-secondary/20 rounded-full">
+<div class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></div>
+<span class="text-[10px] font-bold text-secondary uppercase">Live Processing</span>
+</div>
+</div>
+<div class="flex-1 relative">
+<div class="absolute left-[19px] top-6 bottom-6 w-[1px] bg-outline-variant"></div>
+<div class="space-y-12">
+<!-- Phase 1 -->
+<div class="timeline-item active flex gap-6">
+<div class="relative z-10 w-10 h-10 rounded-full bg-surface-container-highest border border-secondary flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-sm">check</span>
+</div>
+<div>
+<p class="font-bold text-on-surface">Phase 1: Pre-Filter</p>
+<p class="text-on-surface-variant text-sm mt-1">Deterministic Regex Engine: PII, secrets, and auth headers scrubbed.</p>
+</div>
+</div>
+<!-- Phase 2 -->
+<div class="timeline-item active flex gap-6">
+<div class="relative z-10 w-10 h-10 rounded-full bg-surface-container-highest border border-primary flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-sm animate-spin">sync</span>
+</div>
+<div>
+<p class="font-bold text-on-surface">Phase 2: Execution</p>
+<p class="text-on-surface-variant text-sm mt-1">Model Selected: <span class="text-primary font-mono">qwen3-32b</span> via Groq... <span class="text-secondary font-bold">Cost: $0.00.</span></p>
+</div>
+</div>
+<!-- Phase 3 -->
+<div class="timeline-item active flex gap-6">
+<div class="relative z-10 w-10 h-10 rounded-full bg-secondary/20 border border-secondary flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-sm">psychology</span>
+</div>
+<div class="flex-1 emerald-glow p-4 rounded-xl border border-transparent">
+<p class="font-bold text-secondary flex items-center gap-2">
+<span>🧠 Hindsight Memory Match Found</span>
+</p>
+<p class="text-on-surface text-xs leading-relaxed mt-1 italic">
+                                    Linked to Historic Outage #412 (Billing Service Connection Pool Leak). Identical stack trace signature detected.
+                                </p>
+</div>
+</div>
+<!-- Phase 4 -->
+<div class="timeline-item active flex gap-6">
+<div class="relative z-10 w-10 h-10 rounded-full bg-surface-container-highest border border-outline-variant flex items-center justify-center text-outline-variant">
+<span class="material-symbols-outlined text-sm">priority_high</span>
+</div>
+<div>
+<p class="font-bold text-on-surface">Phase 4: Synthesis</p>
+<p class="text-on-surface-variant text-sm mt-1">Escalated to premium reasoning tier. Compiling action report...</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Bottom: Tabbed Container -->
+<section class="col-span-12">
+<div class="glass-panel rounded-xl overflow-hidden inner-glow-top">
+<div class="flex border-b border-outline-variant bg-surface-container-low">
+<button class="px-8 py-5 font-bold border-b-2 border-primary text-primary text-sm uppercase tracking-wider" id="tab-btn-markdown" onclick="switchTab('markdown')">
+                        Markdown View
+                    </button>
+<button class="px-8 py-5 font-bold text-on-surface-variant hover:text-on-surface transition-all text-sm uppercase tracking-wider" id="tab-btn-slack" onclick="switchTab('slack')">
+                        Slack Hook Mock
+                    </button>
+</div>
+<div class="p-10">
+<div id="tab-markdown">
+<div class="max-w-6xl mx-auto">
+<h2 class="text-2xl font-bold text-on-surface mb-8 pb-4 border-b border-outline-variant">Executive Summary: Incident #982-A</h2>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+<div class="space-y-4">
+<h3 class="text-primary font-bold uppercase tracking-[0.2em] text-[10px]">Root Cause</h3>
+<div class="text-on-surface leading-relaxed">
+                                        The application is experiencing a connection leak in the 
+                                        <code class="bg-primary/10 text-primary px-1.5 py-0.5 rounded font-mono text-sm border border-primary/20">Billing Service</code>. 
+                                        The logs indicate that the DB pool is reaching its limit of 1000 connections due to an unclosed subscription stream in the Node.js middleware.
+                                    </div>
+</div>
+<div class="space-y-4">
+<h3 class="text-primary font-bold uppercase tracking-[0.2em] text-[10px]">Action Items</h3>
+<ul class="space-y-3">
+<li class="flex items-start gap-3 text-on-surface-variant text-sm">
+<span class="text-secondary font-bold">01</span>
+<span>Restart billing service container immediately.</span>
+</li>
+<li class="flex items-start gap-3 text-on-surface-variant text-sm">
+<span class="text-secondary font-bold">02</span>
+<span>Apply patch <code class="font-mono text-on-surface">v1.2.3</code> to the middleware layer.</span>
+</li>
+<li class="flex items-start gap-3 text-on-surface-variant text-sm">
+<span class="text-secondary font-bold">03</span>
+<span>Increase pool size temporarily to 1500 connections.</span>
+</li>
+</ul>
+</div>
+</div>
+<!-- Footer inside tab -->
+<div class="mt-12 p-5 bg-surface-container-highest rounded-xl border border-outline-variant flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">auto_awesome</span>
+</div>
+<div>
+<p class="text-sm font-bold text-on-surface">DevMemory synthesis complete</p>
+<p class="text-xs text-on-surface-variant">Report ready for enterprise export.</p>
+</div>
+</div>
+<button class="bg-primary text-on-primary px-6 py-2.5 rounded-lg font-bold text-xs hover:opacity-90 flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">download</span>
+                                    Download PDF
+                                </button>
+</div>
+</div>
+</div>
+<div class="hidden" id="tab-slack">
+<div class="max-w-xl mx-auto bg-[#1a1d21] border border-white/10 rounded-lg p-6 font-sans">
+<div class="flex gap-4">
+<div class="w-10 h-10 bg-primary-container rounded flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-on-primary-container">memory</span>
+</div>
+<div class="space-y-2 flex-1">
+<div class="flex items-center gap-2">
+<span class="font-bold text-white text-sm">DevMemory Agent</span>
+<span class="text-[#ababad] text-[11px]">12:44 PM</span>
+</div>
+<div class="text-[#d1d2d3] text-sm">
+<p class="font-bold text-secondary">⚠️ Critical Outage Signature Detected</p>
+<p class="mt-1">I've identified a match for outage <a class="text-primary hover:underline" href="#">#412</a> in the current log stream. Root cause is a Billing Service Pool Leak.</p>
+</div>
+<div class="flex gap-2 mt-4">
+<button class="px-4 py-1.5 bg-[#272a2d] border border-[#56585a] rounded text-xs font-bold text-white hover:bg-[#35373b]">Deploy Fix</button>
+<button class="px-4 py-1.5 bg-[#272a2d] border border-[#56585a] rounded text-xs font-bold text-white hover:bg-[#35373b]">View Report</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+<script>
+    function switchTab(tab) {
+        const mdTab = document.getElementById('tab-markdown');
+        const slackTab = document.getElementById('tab-slack');
+        const mdBtn = document.getElementById('tab-btn-markdown');
+        const slackBtn = document.getElementById('tab-btn-slack');
+
+        if (tab === 'markdown') {
+            mdTab.classList.remove('hidden');
+            slackTab.classList.add('hidden');
+            mdBtn.classList.add('border-primary', 'text-primary');
+            mdBtn.classList.remove('text-on-surface-variant');
+            slackBtn.classList.remove('border-primary', 'text-primary');
+            slackBtn.classList.add('text-on-surface-variant');
+        } else {
+            mdTab.classList.add('hidden');
+            slackTab.classList.remove('hidden');
+            slackBtn.classList.add('border-primary', 'text-primary');
+            slackBtn.classList.remove('text-on-surface-variant');
+            mdBtn.classList.remove('border-primary', 'text-primary');
+            mdBtn.classList.add('text-on-surface-variant');
+        }
+    }
+
+    // --- Async Fetch Handler: Trigger Scan Button → POST /api/process-log ---
+    document.getElementById('trigger-scan').addEventListener('click', async function () {
+        const logInput = document.getElementById('log-input');
+        const statusMsg = document.getElementById('status-message');
+        const rawLog = logInput.value.trim();
+
+        // Clear previous status
+        statusMsg.classList.add('hidden');
+        statusMsg.textContent = '';
+        statusMsg.className = 'text-center text-sm font-bold hidden';
+
+        if (!rawLog) {
+            alert('⚠️ Please paste a raw log payload into the textarea before scanning.');
+            return;
+        }
+
+        // Show loading state
+        statusMsg.textContent = '⏳ Processing pipeline running...';
+        statusMsg.classList.remove('hidden');
+        statusMsg.classList.add('text-primary');
+
+        try {
+            const response = await fetch('http://127.0.0.1:8000/api/process-log', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ payload: rawLog })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                statusMsg.textContent = '✅ Pipeline Success: Report generated & dispatched to Slack.';
+                statusMsg.className = 'text-center text-sm font-bold text-secondary';
+                statusMsg.classList.remove('hidden');
+                alert('✅ SUCCESS (HTTP 200 OK): DevMemory pipeline completed. SRE report synthesized and dispatched to Slack.');
+            } else {
+                const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
+                statusMsg.textContent = `❌ Pipeline Error (HTTP ${response.status}): ${errorData.detail || 'Request failed.'}`;
+                statusMsg.className = 'text-center text-sm font-bold text-error';
+                statusMsg.classList.remove('hidden');
+                alert(`❌ PIPELINE ERROR (HTTP ${response.status}): ${errorData.detail || 'Processing failed.'}`);
+            }
+        } catch (err) {
+            statusMsg.textContent = `❌ Network Error: ${err.message}`;
+            statusMsg.className = 'text-center text-sm font-bold text-error';
+            statusMsg.classList.remove('hidden');
+            alert(`❌ NETWORK ERROR: Could not reach the DevMemory API server. ${err.message}`);
+        }
+    });
+</script>
+</body></html>
