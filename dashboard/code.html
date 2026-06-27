@@ -170,11 +170,13 @@
 <div class="text-on-surface-variant/40 italic">... (3,402 lines suppressed for performance)</div>
 </div>
 </div>
-<div class="p-6 bg-surface-container border-t border-outline-variant">
+<div class="p-6 bg-surface-container border-t border-outline-variant space-y-4">
+<textarea id="log-input" rows="3" placeholder="Paste raw system log payload here..." class="w-full bg-[#05090a] text-on-surface border border-outline-variant rounded-lg p-4 font-mono text-sm placeholder:text-outline resize-none focus:outline-none focus:border-primary transition-colors"></textarea>
 <button class="w-full py-4 rounded-xl font-bold text-lg bg-primary text-on-primary hover:brightness-110 active:scale-[0.98] transition-all scan-pulse flex items-center justify-center gap-3 shadow-xl shadow-primary/10" id="trigger-scan">
 <span class="material-symbols-outlined">flare</span>
                         Trigger Asynchronous DevMemory Scan
                     </button>
+<div id="status-message" class="text-center text-sm font-bold hidden"></div>
 </div>
 </div>
 </section>
@@ -350,5 +352,54 @@
             mdBtn.classList.add('text-on-surface-variant');
         }
     }
+
+    // --- Async Fetch Handler: Trigger Scan Button → POST /api/process-log ---
+    document.getElementById('trigger-scan').addEventListener('click', async function () {
+        const logInput = document.getElementById('log-input');
+        const statusMsg = document.getElementById('status-message');
+        const rawLog = logInput.value.trim();
+
+        // Clear previous status
+        statusMsg.classList.add('hidden');
+        statusMsg.textContent = '';
+        statusMsg.className = 'text-center text-sm font-bold hidden';
+
+        if (!rawLog) {
+            alert('⚠️ Please paste a raw log payload into the textarea before scanning.');
+            return;
+        }
+
+        // Show loading state
+        statusMsg.textContent = '⏳ Processing pipeline running...';
+        statusMsg.classList.remove('hidden');
+        statusMsg.classList.add('text-primary');
+
+        try {
+            const response = await fetch('http://127.0.0.1:8000/api/process-log', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ payload: rawLog })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                statusMsg.textContent = '✅ Pipeline Success: Report generated & dispatched to Slack.';
+                statusMsg.className = 'text-center text-sm font-bold text-secondary';
+                statusMsg.classList.remove('hidden');
+                alert('✅ SUCCESS (HTTP 200 OK): DevMemory pipeline completed. SRE report synthesized and dispatched to Slack.');
+            } else {
+                const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
+                statusMsg.textContent = `❌ Pipeline Error (HTTP ${response.status}): ${errorData.detail || 'Request failed.'}`;
+                statusMsg.className = 'text-center text-sm font-bold text-error';
+                statusMsg.classList.remove('hidden');
+                alert(`❌ PIPELINE ERROR (HTTP ${response.status}): ${errorData.detail || 'Processing failed.'}`);
+            }
+        } catch (err) {
+            statusMsg.textContent = `❌ Network Error: ${err.message}`;
+            statusMsg.className = 'text-center text-sm font-bold text-error';
+            statusMsg.classList.remove('hidden');
+            alert(`❌ NETWORK ERROR: Could not reach the DevMemory API server. ${err.message}`);
+        }
+    });
 </script>
 </body></html>

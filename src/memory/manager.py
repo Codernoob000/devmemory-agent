@@ -357,7 +357,8 @@ class AntigravityHindsightManager:
                     "error_signature": match.get("error_signature"),
                     "root_cause": match.get("root_cause"),
                     "resolution_patch": match.get("resolution_patch"),
-                    "similarity_score": round(best_score, 4)
+                    "similarity_score": round(best_score, 4),
+                    "date": match.get("date", "2025-11-12")
                 }
         except Exception as e:
             self.logger.error(f"Error executing local fallback semantic match: {e}")
@@ -496,6 +497,8 @@ def query_historical_context(clean_log: str) -> str:
         return (
             f"HISTORICAL CONTEXT [Hindsight]:\n"
             f"- Match Found: {result['session_id']}\n"
+            f"- Date: {result.get('date', '2025-11-12')}\n"
+            f"- Similarity: {result.get('similarity_score', 0.8)}\n"
             f"- Root Cause: {result['root_cause']}\n"
             f"- Resolution Patch:\n{result['resolution_patch']}"
         )
