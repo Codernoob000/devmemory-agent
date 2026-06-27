@@ -1,0 +1,32 @@
+[
+  {
+    "session_id": "outage-session-001",
+    "error_signature": "sqlalchemy.exc.TimeoutError: QueuePool limit of size 10 overflow 20 reached, connection timed out, timeout 30.00 (ConnectionPoolTimeoutException)",
+    "root_cause": "The application suffered from a PostgreSQL connection pool exhaustion because database cursors and connections were not properly closed inside asynchronous tasks. Specifically, the async handler used `db.cursor()` but failed to wrap the transaction in a try-finally block or context manager. Under heavy concurrent load, connections remained in an 'idle in transaction' state, quickly saturating the pool capacity.",
+    "resolution_patch": "Ensure all database sessions and cursors use context managers (`async with` or `with`) or explicit cleanups inside `try...finally` blocks. Also, tune the SQLAlchemy/Database connection pool settings: set pool_size to 20, max_overflow to 30, and pool_recycle to 1800 to recycle stale connections.\n\nCode change:\n```python\n# Before:\ncursor = await connection.cursor()\nresult = await cursor.execute(query)\n# After:\nasync with connection.cursor() as cursor:\n    result = await cursor.execute(query)\n```"
+  },
+  {
+    "session_id": "outage-session-002",
+    "error_signature": "redis.exceptions.ResponseError: OOM command not allowed when used memory > 'maxmemory'. Failed executing command: SETEX session:user_9921 86400",
+    "root_cause": "The Redis cluster ran out of memory (OOM) due to volatile user session caching keys lacking Time-To-Live (TTL) expirations, coupled with an incorrect eviction policy in `redis.conf`. The eviction policy was set to `noeviction`, preventing Redis from deleting key space to free up room when it hit the 4GB RAM threshold.",
+    "resolution_patch": "1. Modify `redis.conf` to set `maxmemory-policy allkeys-lru` to allow automatic eviction of least recently used keys when memory is full.\n2. Ensure all caching store requests explicitly specify a TTL parameter (e.g., `redis_client.setex(key, ttl, value)`).\n3. Implement a background cleanup script to prune legacy keys that do not have expirations."
+  },
+  {
+    "session_id": "outage-session-003",
+    "error_signature": "RuntimeError: Task <Task pending name='Task-12' coro=<fetch_metrics()>> blocked pending on <Future pending> for 120.0s inside asyncio event loop. GatewayTimeoutException (HTTP 504)",
+    "root_cause": "The Python asyncio event loop suffered from thread starvation. A developer executed a synchronous, CPU-bound cryptographic payload parsing function (`bcrypt.hashpw` or similar blocking cryptography routine) and synchronous HTTP requests using `requests.get()` directly in the async request thread. This blocked the event loop's main thread, preventing it from processing pending network requests and scheduling heartbeat ticks, causing the api gateway to register timeout errors (HTTP 504) and disconnect.",
+    "resolution_patch": "1. Offload all synchronous, blocking, or heavy CPU-bound calls to a separate thread pool executor using `asyncio.to_thread` (Python 3.9+) or `loop.run_in_executor`.\n2. Replace synchronous HTTP libraries (`requests`) with asynchronous clients (`httpx` or `aiohttp`).\n\nCode change:\n```python\n# Before:\nresponse = requests.get(url)\n# After:\nasync with httpx.AsyncClient() as client:\n    response = await client.get(url)\n```"
+  },
+  {
+    "session_id": "outage-session-004",
+    "error_signature": "org.apache.kafka.clients.consumer.CommitFailedException: Commit cannot be completed since the group has already rebalanced and assigned the partitions to another member. This means that the time between subsequent calls to poll() was longer than the configured max.poll.interval.ms.",
+    "root_cause": "The Kafka consumer group encountered a rebalance storm. The application consumer was fetching large batches of records (500 per poll) and executing complex NLP analysis or machine learning inferences on each message. The total processing time exceeded the default `max.poll.interval.ms` limit (300,000ms / 5 minutes), leading the Kafka broker coordinator to assume the consumer died, removing it from the group and triggering a reassign loop.",
+    "resolution_patch": "1. Reduce the maximum number of records fetched per poll by adjusting `max.poll.records` from 500 to 50.\n2. Increase `max.poll.interval.ms` from 300000 (5 mins) to 600000 (10 mins) in the consumer configuration properties.\n3. Implement a worker pool to process messages asynchronously using a thread pool executor, separating message pulling from message processing."
+  },
+  {
+    "session_id": "outage-session-005",
+    "error_signature": "django.db.utils.OperationalError: (1213, 'Deadlock found when trying to get lock; try restarting transaction') during batch update (RDS CPU @ 100%)",
+    "root_cause": "An N+1 query issue in a background celery worker triggered a massive database deadlock and CPU saturation (100% load on AWS RDS). The worker iterated over thousands of parent records and triggered separate SELECT queries for each child record in a loop, instead of utilizing prefetching. Concurrent worker processes locked the same database rows in different orders during bulk state updates.",
+    "resolution_patch": "1. Refactor ORM queries to prefetch related fields using `.prefetch_related()` or `.select_related()` in a single query.\n2. Wrap batch updates inside a selective row lock query (e.g., `select_for_update()`) and ensure updates sort row IDs before locking to guarantee a deterministic locking order.\n\nCode change:\n```python\n# Before:\nfor order in Order.objects.filter(status='pending'):\n    print(order.customer.email)  # Triggers query per iteration\n# After:\nfor order in Order.objects.filter(status='pending').select_related('customer'):\n    print(order.customer.email)  # Single unified query\n```"
+  }
+]
